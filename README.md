@@ -20,3 +20,9 @@ BLAST
 wget https://github.com/terrimporter/CO1Classifier/releases/download/RDP-COI-v5.1.0/RDP_COIv5.1.0.zip
 wget https://github.com/terrimporter/12SvertebrateClassifier/releases/tag/v3.0.0-ref/12SvertebrateNA_v3.0.0_ref.zip
 ```
+### Run cutadapt to demultiplex the samples
+```
+mkdir 1_demux
+
+cutadapt -j 50 -e 0.02 --no-indels -g file:$forwardtag -G file:$reversetag -o 1_demux/{name1}-{name2}_R1_001.fastq.gz -p 1_demux/{name1}-{name2}_R2_001.fastq.gz $fwdfile $revfile --minimum-length 100 > fwd_orient.cutadapt.stat
+```
