@@ -1,4 +1,4 @@
-# Lough Feagh sedaDNA analysys
+# Lough Feeagh sedaDNA analysys
 
 These commands and pipelines are the bioinformatic steps which accompany the Tighe et al. 2025 article, showing how both the metabarcoding data and shotgun sequences were analysed.
 All analyses were run on XX Linux Server running 11 (?), with 60 cores and 1Tb memory.
