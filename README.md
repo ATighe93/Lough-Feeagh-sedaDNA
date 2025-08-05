@@ -30,7 +30,7 @@ cutadapt -j 50 -e 0.02 --no-indels -g file:$forwardtag -G file:$reversetag -o 1_
 
 
 
-## Analysing the metabarcoding data
+## Analysing the shotgun sequence data
 
 ### Install panda to assemble paired-end reads.
 ```
