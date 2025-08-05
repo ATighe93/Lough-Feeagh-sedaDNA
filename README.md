@@ -32,11 +32,11 @@ cutadapt -j 50 -e 0.02 --no-indels -g file:$forwardtag -G file:$reversetag -o 1_
 
 ## Analysing the metabarcoding data
 
-### Install panda to assemble paired-end reads
+### Install panda to assemble paired-end reads.
 ```
 run panda
 ```
-### BLAST all assmebled and unassembled raw reads
+### BLAST all assembled and unassembled raw reads.
 ```
 ./blastn -query rawreads.fasta -db /data01/nt_2024/nt -num_threads 50 -max_target_seqs 10 -outfmt "6 qseqid stitle pident length evalue" -out Raw_blast_results.txt
 ```
@@ -49,7 +49,35 @@ awk  -F '\t' '$1 ~ /A.radiobacter/ {print $2}' 2nt_nucl_test6_myown_95_w44_assem
 awk  -F '\t' '$1 ~ /Abiotrophia/ {print $2}' 2nt_nucl_test6_myown_95_w44_assembled >> bad_accesions.txt | echo "Pulling out Abiotrophia accessions.."
 awk  -F '\t' '$1 ~ /Achromobacter/ {print $2}' 2nt_nucl_test6_myown_95_w44_assembled >> bad_accesions.txt | echo "Pulling out Achromobacter accessions.."
 ```
+Next used awk to make a file of unique accessions that blasted to human or microbial.
+```
+awk '{ a[$1]++ } END { for (b in a) { print b } }' bad_accesions.txt > Unique_bad_accesions.txt
+```
+Then used awk to print the accessions in field 2 of "Raw_blast_results.txt" which are not in the Unique bad accession list, and the output is piped into Good_accessions.txt.
+```
+awk -F '\t' 'NR == FNR { list[tolower($1)]=1; next } { if (! list[tolower($2)]) { print $2 } }' Unique_bad_accesions.txt 2nt_nucl_test6_myown_95_w44_assembled > Good_accessions.txt
+```
+Get the unique query accessions and put them in a new file.
+```
+awk '{ a[$1]++ } END { for (b in a) { print b } }' Good_accessions.txt > Unique_Good_accessions.txt
+```
+Pull the good sequences out of the original fastq file.
+```
+grep -A3 -Ff Unique_Good_accessions.txt Raw_reads.assembled.fastq > Reads_for_reblasting.fastq
+```
+The output from above has an extra line per sequence with --, so this is removed using reverse grep.
+```
+grep -v -e "--" Reads_for_reblasting.fastq > Reads_for_reblasting_nodash.fastq
+```
 
+### Preprocessing, using cutadapt to trim polyG tails, remove any reads of low quality (Q20) and any low complexity reads below 30 bp.
+```
+cutadapt --quality-cutoff 20 -a "G{10}" --minimum-length 30 -o trimmed_Reads_for_reblasting.fastq Reads_for_reblasting_nodash.fastq
+```
+### Running BLAST locally on the processed sequences, with the standard output (-oufmt 6) which can be read by MEGAN.
+```
+blastn -query Trimmed_reads_for_reblasting.fastq -db /data04/nt/2nt -num_threads 50 -max_target_seqs 10 -outfmt 6 -out Clean_blast_results.txt
+```
 
 
 
