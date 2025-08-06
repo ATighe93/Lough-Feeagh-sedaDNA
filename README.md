@@ -21,7 +21,7 @@ sudo apt install ncbi-blast+
 wget https://github.com/terrimporter/CO1Classifier/releases/download/RDP-COI-v5.1.0/RDP_COIv5.1.0.zip
 wget https://github.com/terrimporter/12SvertebrateClassifier/releases/tag/v3.0.0-ref/12SvertebrateNA_v3.0.0_ref.zip
 
-rsync -av --delete rsync://ftp.ncbi.nlm.nih.gov/genbank/ /your/local/path/genbank/
+wget ftp://ftp.ncbi.nlm.nih.gov/blast/db/nt.*.tar.gz
 ```
 ### Run cutadapt to demultiplex the samples
 ```
