@@ -1,24 +1,27 @@
 # Lough Feeagh sedaDNA analysis
 
 These commands and pipelines are the bioinformatic steps which accompany the Tighe et al. 2025 article, showing how both the metabarcoding data and shotgun sequences were analysed.
-All analyses were run on a Linux Server running Ubuntu 24.04.2 LTS, with 64 cores and 472 Gb memory.
+All analyses were run on a Linux Server running Ubuntu 24.04 LTS, with 64 cores and 472 Gb memory.
 
 ## Analysing the metabarcoding data
 
 ### Firstly install cutadapt, R, RDP classifier (which requires java) and local BLAST.
 ```
-sudo apt install cutadapt
-R
+pip3 install --user cutadapt
 
-wget https://sourceforge.net/projects/rdp-classifier/files/rdp-classifier/rdp_classifier_2.13.zip
+sudo apt install r-base
+
+wget https://downloads.sourceforge.net/project/rdp-classifier/rdp-classifier/2.13/rdp_classifier_2.13.zip
 unzip rdp_classifier_2.13
 
-BLAST
+sudo apt install ncbi-blast+
 ```
 ### Download the relevent databases for RDP classifier and local BLAST
 ```
 wget https://github.com/terrimporter/CO1Classifier/releases/download/RDP-COI-v5.1.0/RDP_COIv5.1.0.zip
 wget https://github.com/terrimporter/12SvertebrateClassifier/releases/tag/v3.0.0-ref/12SvertebrateNA_v3.0.0_ref.zip
+
+rsync -av --delete rsync://ftp.ncbi.nlm.nih.gov/genbank/ /your/local/path/genbank/
 ```
 ### Run cutadapt to demultiplex the samples
 ```
@@ -65,9 +68,10 @@ Rscript Fwd_combine_blast.R
 ```
 ## Analysing the shotgun sequence data
 
-### Install panda to assemble paired-end reads.
+### Install and run PANDASEQ to assemble paired-end reads.
 ```
-run panda
+sudo apt install pandaseq
+pandaseq -f forward.fastq -r reverse.fastq
 ```
 ### BLAST all assembled and unassembled raw reads.
 ```
