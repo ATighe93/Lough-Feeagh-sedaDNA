@@ -116,7 +116,76 @@ cutadapt --quality-cutoff 20 -a "G{10}" --minimum-length 30 -o trimmed_Reads_for
 ```
 blastn -query Trimmed_reads_for_reblasting.fastq -db /data04/nt/2nt -num_threads 50 -max_target_seqs 10 -outfmt 6 -out Clean_blast_results.txt
 ```
+## Raw data processing for plotting DNA damage patterns
+### Indexing reference sequences
+```
+for j in ${ref_seq}; do
+samtools faidx $ref/${j}.fasta
+java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar CreateSequenceDictionary R=$ref/${j}.fasta O=$ref/${j}.dict
+bwa index $ref/${j}.fasta
+done
+```
+### Data overview with FASTQC
+```
+mkdir $path/S01_FASTQC
+ln -s /data03/area52_files/NGS_Nettan/b2020_12S_reanalysis_3 /data03/area52_files/pcampos/projects/B2020/S00_Reads
+fastqc -o $path/S01_FASTQC $reads/b2020_12S_reanalysis/*_L2_1.fq.gz $reads/b2020_12S_reanalysis/*_L2_2.fq.gz
+fastqc -o $path/S01_FASTQC $reads/b2020_12S_reanalysis_2/*_L1_1.fq.gz $reads/b2020_12S_reanalysis_2/*_L1_2.fq.gz
+fastqc -o $path/S01_FASTQC $reads/b2020_12S_reanalysis_3/*_L2_1.fq.gz $reads/b2020_12S_reanalysis_3/*_L2_2.fq.gz
+fastqc -o $path/S01_FASTQC $reads/b2020_COI_reanalysis/*_L1_1.fq.gz $reads/b2020_COI_reanalysis/*_L1_2.fq.gz
+fastqc -o $path/S01_FASTQC $reads/S_144/*_L2_1.fq.gz $reads/S_144/*_L2_2.fq.gz
+fastqc -o $path/S01_FASTQC $reads/S_109/*_L3_1.fq $reads/S_109/*_L3_2.fq
+fastqc -o $path/S01_FASTQC $reads/S_95/*_L2_1.fq $reads/S_95/*_L2_2.fq
+```
+### Reads selection based on entropy - BBDUK 
+```
+mkdir $path/S02_BBduk
+$softwares/BBMap_38.34/bbmap/bbduk.sh in1=$reads/S_144/S_144_EKDN220021378-1A_H3MGWDSX5_L2_1.fq.gz in2=$reads/S_144/S_144_EKDN220021378-1A_H3MGWDSX5_L2_2.fq.gz entropy=0.6 out1=$path/S02_BBduk/S144_R1_Step02_entropy_0.6_masked.fq.gz out2=$path/S02_BBduk/S144_R2_Step02_entropy_0.6_masked.fq.gz
+gunzip $path/S02_BBduk/S144_R1_Step02_entropy_0.6_masked.fq.gz 
+gunzip $path/S02_BBduk/S144_R2_Step02_entropy_0.6_masked.fq.gz 
+$softwares/BBMap_38.34/bbmap/bbduk.sh in1=$reads/S_109/S_109_EKDN220021377-1A_H2GTLDSX5_L3_1.fq in2=$reads/S_109/S_109_EKDN220021377-1A_H2GTLDSX5_L3_2.fq entropy=0.6 out1=$path/S02_BBduk/S109_R1_Step02_entropy_0.6_masked.fq out2=$path/S02_BBduk/S109_R2_Step02_entropy_0.6_masked.fq
+$softwares/BBMap_38.34/bbmap/bbduk.sh in1=$reads/S_95/S_95_EKDN220021376-1A_H33GNDSX5_L2_1.fq in2=$reads/S_95/S_95_EKDN220021376-1A_H33GNDSX5_L2_2.fq entropy=0.6 out1=$path/S02_BBduk/S95_R1_Step02_entropy_0.6_masked.fq out2=$path/S02_BBduk/S95_R2_Step02_entropy_0.6_masked.fq
+```
+### Reduced data overview - FASTQC 
+```
+mkdir $path/S03_FASTQC
+for i in ${NAME}; do
+fastqc -o $path/S03_FASTQC $path/S02_BBduk/${i}_R1_Step02_entropy_0.6_masked.fq $path/S02_BBduk/${i}_R2_Step02_entropy_0.6_masked.fq
+done
+```
+### Step 4 TRIMMING AND COLLAPSING
+Step 4_1 - Adaptor removal and low quality bases removal - TRIMMOMATIC
+```
+mkdir $path/S04_Trimmomatic
+#   for i in ${NAME}; do
+#   java -Xms4G -Xmx4G -jar $softwares/Trimmomatic/trimmomatic-0.39.jar PE -threads 8 -phred33 \
+#   $path/S02_BBduk/${i}_R1_Step02_entropy_0.6_masked.fq \
+#   $path/S02_BBduk/${i}_R2_Step02_entropy_0.6_masked.fq \
+#   $path/S04_Trimmomatic/${i}_R1_Step04_entropy_0.6_masked_trimmed.fq \
+#   $path/S04_Trimmomatic/${i}_S1_Step04_entropy_0.6_masked_trimmed.fq \
+#   $path/S04_Trimmomatic/${i}_R2_Step04_entropy_0.6_masked_trimmed.fq \
+#   $path/S04_Trimmomatic/${i}_S2_Step04_entropy_0.6_masked_trimmed.fq \
+#   ILLUMINACLIP:$ref/adapters.fasta:2:30:10
+#   #   LEADING:15 TRAILING:15 SLIDINGWINDOW:5:15 MINLEN:30
+# ILLUMINACLIP:path_to_Illumina_adapters.fa:seed mismatches (specifies the maximum mismatch count which will still allow a full match to be performed):palindrome clip threshold (specifies how accurate the match between the two 'adapter ligated' reads must be for PE palindrome read alignment):simpleClipThreshold (specifies how accurate the match between any adapter etc. sequence must be against a read)
+# LEADING:quality, removes low quality bases from the beginning. As long as a base has a value below this threshold the base is removed and the next will be instigated.
+# TRAILING:quality, removes low quality bases from the end. As long as a base has a value below this threshold the base is removed and the next base (which as trimmomatic is starting fro mthe 3' end would be the base preceding the just removed base) will be instigated.
+# SLIDINGWINDOWS:windowSize:requiredQuality, performs a sliding window trimming, cutting once the average quality within the window falls below a threshold. By considering multiple bases, a single poor quality base will not cause the removal of high quality data later in the read
+# MINLEN:length, specifies the minimum length of reads to be kept
+#   readlength.sh in=$path/S04_Trimmomatic/${NAME}_R1_Step04_entropy_0.6_masked_trimmed.fastq.gz in2=$path/S04_Trimmomatic/${NAME}_R2_Step04_entropy_0.6_masked_trimmed.fastq.gz out=$path/S04_Trimmomatic/${NAME}_Step04_entropy_0.6_masked_trimmed_reads_length_histogramme.txt
+```
+Step 4_2 - Reads collapsing - AdaptorRemoval 
+```
+#   mkdir $path/S04_Trimmomatic/collapsing
+#   input_reads1=$path/S04_Trimmomatic/${i}_R1_Step04_entropy_0.6_masked_trimmed.fq
+#   input_reads2=$path/S04_Trimmomatic/${i}_R2_Step04_entropy_0.6_masked_trimmed.fq
 
-
+#   AdapterRemoval --threads 8 --file1 $input_reads1 --file2 $input_reads2 --collapse --outputcollapsed $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_collapsed.fq --output1 $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1.fq --output2 $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2.fq 
+#   cp $path/S04_Trimmomatic/${i}_S1_Step04_entropy_0.6_masked_trimmed.fq $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1_all.fq
+#   cp $path/S04_Trimmomatic/${i}_S2_Step04_entropy_0.6_masked_trimmed.fq $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2_all.fq
+#   cat $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1.fq >> $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1_all.fq
+#   cat $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2.fq >> $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2_all.fq
+#   done
+```
 
 
