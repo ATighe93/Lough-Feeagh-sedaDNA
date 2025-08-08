@@ -68,6 +68,18 @@ Rscript Fwd_combine_blast.R
 ```
 ## Analysing the shotgun sequence data
 
+### Data overview with FASTQC
+```
+mkdir $path/S01_FASTQC
+ln -s /data03/area52_files/NGS_Nettan/b2020_12S_reanalysis_3 /data03/area52_files/pcampos/projects/B2020/S00_Reads
+fastqc -o $path/S01_FASTQC $reads/b2020_12S_reanalysis/*_L2_1.fq.gz $reads/b2020_12S_reanalysis/*_L2_2.fq.gz
+fastqc -o $path/S01_FASTQC $reads/b2020_12S_reanalysis_2/*_L1_1.fq.gz $reads/b2020_12S_reanalysis_2/*_L1_2.fq.gz
+fastqc -o $path/S01_FASTQC $reads/b2020_12S_reanalysis_3/*_L2_1.fq.gz $reads/b2020_12S_reanalysis_3/*_L2_2.fq.gz
+fastqc -o $path/S01_FASTQC $reads/b2020_COI_reanalysis/*_L1_1.fq.gz $reads/b2020_COI_reanalysis/*_L1_2.fq.gz
+fastqc -o $path/S01_FASTQC $reads/S_144/*_L2_1.fq.gz $reads/S_144/*_L2_2.fq.gz
+fastqc -o $path/S01_FASTQC $reads/S_109/*_L3_1.fq $reads/S_109/*_L3_2.fq
+fastqc -o $path/S01_FASTQC $reads/S_95/*_L2_1.fq $reads/S_95/*_L2_2.fq
+```
 ### Install and run PANDASEQ to assemble paired-end reads.
 ```
 sudo apt install pandaseq
@@ -124,18 +136,6 @@ samtools faidx $ref/${j}.fasta
 java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar CreateSequenceDictionary R=$ref/${j}.fasta O=$ref/${j}.dict
 bwa index $ref/${j}.fasta
 done
-```
-### Data overview with FASTQC
-```
-mkdir $path/S01_FASTQC
-ln -s /data03/area52_files/NGS_Nettan/b2020_12S_reanalysis_3 /data03/area52_files/pcampos/projects/B2020/S00_Reads
-fastqc -o $path/S01_FASTQC $reads/b2020_12S_reanalysis/*_L2_1.fq.gz $reads/b2020_12S_reanalysis/*_L2_2.fq.gz
-fastqc -o $path/S01_FASTQC $reads/b2020_12S_reanalysis_2/*_L1_1.fq.gz $reads/b2020_12S_reanalysis_2/*_L1_2.fq.gz
-fastqc -o $path/S01_FASTQC $reads/b2020_12S_reanalysis_3/*_L2_1.fq.gz $reads/b2020_12S_reanalysis_3/*_L2_2.fq.gz
-fastqc -o $path/S01_FASTQC $reads/b2020_COI_reanalysis/*_L1_1.fq.gz $reads/b2020_COI_reanalysis/*_L1_2.fq.gz
-fastqc -o $path/S01_FASTQC $reads/S_144/*_L2_1.fq.gz $reads/S_144/*_L2_2.fq.gz
-fastqc -o $path/S01_FASTQC $reads/S_109/*_L3_1.fq $reads/S_109/*_L3_2.fq
-fastqc -o $path/S01_FASTQC $reads/S_95/*_L2_1.fq $reads/S_95/*_L2_2.fq
 ```
 ### Reads selection based on entropy - BBDUK 
 ```
