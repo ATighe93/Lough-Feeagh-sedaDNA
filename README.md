@@ -75,7 +75,7 @@ pandaseq -f forward.fastq -r reverse.fastq
 ```
 ### BLAST all assembled and unassembled raw reads.
 ```
-./blastn -query rawreads.fasta -db /pathway_to_local_database/nt_2024/nt -num_threads 50 -max_target_seqs 10 -outfmt "6 qseqid stitle pident length evalue" -out Raw_blast_results.txt
+blastn -query rawreads.fasta -db /pathway_to_local_database/nt_2024/nt -num_threads 50 -max_target_seqs 10 -outfmt "6 qseqid stitle pident length evalue" -out Raw_blast_results.txt
 ```
 ### Custom BASH scripts to remove all human, bacterial and fungal reads from the original database. It searches using awk in the first field (tab delimited) for the Genus name and then pulls out the second field, which is the query ID.
 Example of first three commands of BASH script:
