@@ -154,7 +154,7 @@ fastqc -o $path/S03_FASTQC $path/S02_BBduk/${i}_R1_Step02_entropy_0.6_masked.fq 
 done
 ```
 ### Step 4 TRIMMING AND COLLAPSING
-Step 4_1 - Adaptor removal and low quality bases removal - TRIMMOMATIC
+Adaptor removal and low quality bases removal - TRIMMOMATIC
 ```
 mkdir $path/S04_Trimmomatic
 #   for i in ${NAME}; do
@@ -174,7 +174,7 @@ mkdir $path/S04_Trimmomatic
 # MINLEN:length, specifies the minimum length of reads to be kept
 #   readlength.sh in=$path/S04_Trimmomatic/${NAME}_R1_Step04_entropy_0.6_masked_trimmed.fastq.gz in2=$path/S04_Trimmomatic/${NAME}_R2_Step04_entropy_0.6_masked_trimmed.fastq.gz out=$path/S04_Trimmomatic/${NAME}_Step04_entropy_0.6_masked_trimmed_reads_length_histogramme.txt
 ```
-Step 4_2 - Reads collapsing - AdaptorRemoval 
+Reads collapsing - AdaptorRemoval 
 ```
 #   mkdir $path/S04_Trimmomatic/collapsing
 #   input_reads1=$path/S04_Trimmomatic/${i}_R1_Step04_entropy_0.6_masked_trimmed.fq
@@ -186,6 +186,99 @@ Step 4_2 - Reads collapsing - AdaptorRemoval
 #   cat $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1.fq >> $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1_all.fq
 #   cat $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2.fq >> $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2_all.fq
 #   done
+```
+### Step 5 REDUCED DATA OVERVIEW - FASTQC 3 
+```
+mkdir $path/S05_FASTQC
+for i in ${NAME}; do
+fastqc -o $path/S05_FASTQC $path/S04_Trimmomatic/collapsing/${NAME}_entropy_0.6_masked_trimmed_collapsed.fq $path/S04_Trimmomatic/collapsing/${NAME}_entropy_0.6_masked_trimmed_singleton1_all.fq $path/S04_Trimmomatic/collapsing/${NAME}_entropy_0.6_masked_trimmed_singleton2_all.fq
+done
+```
+### Step 6 REMOVING HUMAN DNA AND IDENTIFYING DNA - BWA & BLAST
+Mapping and removing reads mapped to human DNA - BWA-aln
+```
+mkdir $path/S06_Alignments
+# reads_clean=$path/S06_Alignments
+reads_clean=/data01/a52_files/B2020/S06_Alignments
+
+for i in ${NAME}; do
+mkdir $path/S06_Alignments/${i}
+bwa aln -t 64 -l 151 $ref/Homo_sapiens*.fasta $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_collapsed.fq > $reads_clean/${i}/${i}_collapsed_Homo_sapiens.sai
+bwa aln -t 64 -l 151 $ref/Homo_sapiens*.fasta $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1_all.fq > $reads_clean/${i}/${i}_singleton1_all_Homo_sapiens.sai
+bwa aln -t 64 -l 151 $ref/Homo_sapiens*.fasta $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2_all.fq > $reads_clean/${i}/${i}_singleton2_all_Homo_sapiens.sai
+
+bwa samse $ref/Homo_sapiens*.fasta $reads_clean/${i}/${i}_collapsed_Homo_sapiens.sai $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_collapsed.fq > $reads_clean/${i}/${i}_collapsed_Homo_sapiens.sam
+bwa samse $ref/Homo_sapiens*.fasta $reads_clean/${i}/${i}_singleton1_all_Homo_sapiens.sai $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1_all.fq > $reads_clean/${i}/${i}_singleton1_all_Homo_sapiens.sam
+bwa samse $ref/Homo_sapiens*.fasta $reads_clean/${i}/${i}_singleton2_all_Homo_sapiens.sai $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2_all.fq > $reads_clean/${i}/${i}_singleton2_all_Homo_sapiens.sam
+
+java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar MergeSamFiles VALIDATION_STRINGENCY=LENIENT I=$reads_clean/${i}/${i}_collapsed_Homo_sapiens.sam I=$reads_clean/${i}/${i}_singleton1_all_Homo_sapiens.sam I=$reads_clean/${i}/${i}_singleton2_all_Homo_sapiens.sam O=$reads_clean/${i}/${i}_merged_Homo_sapiens.sam 
+```
+Conversion .sam to .bam and Human DNA reads removal - SamTools
+```
+samtools view -S -b -h -F 4 $reads_clean/${i}/${i}_merged_Homo_sapiens.sam > $reads_clean/${i}/${i}_Homo_sapiens.bam
+samtools view -b -h -f 4 $reads_clean/${i}/${i}_merged_Homo_sapiens.sam > $reads_clean/${i}/${i}_merged_Homo_sapiens_removed.bam
+samtools view -F 4 $reads_clean/${i}/${i}_Homo_sapiens.bam | head -n 1000000 | cut -f 10 | perl -ne 'chomp;print length($_) . "\n"' | sort -n | uniq -c > $reads_clean/${i}/${i}_Homo_sapiens_lengthdistribution.txt
+samtools flagstat $reads_clean/${i}/${i}_merged_Homo_sapiens.sam > $reads_clean/${i}/${i}_%_of_reads_mapped_to_Homo_sapiens.txt
+samtools fastq -n $reads_clean/${i}/${i}_merged_Homo_sapiens_removed.bam > $reads_clean/${i}/${i}_Homo_sapiens_removed.fastq 
+```
+Mapping to interest species sequences - BWA-aln
+```
+for j in ${ref_spe}; do
+bwa aln -t 64 -l 151 $ref/${j}.fasta $reads_clean/${i}/${i}_Homo_sapiens_removed.fastq > $reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.sai
+bwa samse $ref/${j}*.fasta $reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.sai $reads_clean/${i}/${i}_Homo_sapiens_removed.fastq > $reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.sam
+```
+Conversion .sam to .bam - SamTools
+```
+samtools view -S -b -h -F 4 $reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.sam > $reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.bam
+samtools view -S -b -h -F 4 -q 1 $reads_clean/${i}/${i}_merged_${j}.sam > $reads_clean/${i}/${i}_${j}_noMapq0.bam
+samtools view -F 4 $reads_clean/${i}/${i}_${j}.bam | head -n 1000000 | cut -f 10 | perl -ne 'chomp;print length($_) . "\n"' | sort -n | uniq -c > $reads_clean/${i}/${i}_${j}_lengthdistribution.txt
+samtools flagstat $reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.sam > $reads_clean/${i}/${i}_%_of_reads_mapped_to_${j}_Homo_sapiens_removed.txt
+```
+Remove PCR duplicates
+```
+# Sort BAM 
+java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar MarkDuplicates INPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.sam OUTPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_PCRdup_removed.bam METRICS_FILE=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_duplicates_metric.txt REMOVE_DUPLICATES=true ASSUME_SORTED=true
+java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar SortSam INPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.bam OUTPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_sorted.bam SO=coordinate
+# Index BAM
+java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar BuildBamIndex INPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_sorted.bam
+# Mark & Remove PCR duplicates
+java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar MarkDuplicates INPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_sorted.bam OUTPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_PCRdup_removed_test.bam METRICS_FILE=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_duplicates_metric.txt REMOVE_DUPLICATES=true ASSUME_SORTED=true
+# Sort BAM 
+java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar SortSam INPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_sorted.bam OUTPUT=$reads_clean/${i}/${i}_${j}_Homo_sapiens_removed_final.bam SO=coordinate
+# Index BAM
+java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar BuildBamIndex INPUT=$reads_clean/${i}/${i}_${j}_Homo_sapiens_removed_final.bam
+# Count unique mapped reads 
+samtools flagstat $reads_clean/${i}/${i}_${j}_Homo_sapiens_removed_final.bam > $reads_clean/${i}/${i}_%_of_reads_noPCRdup_MarkDuplicates_mapped_to_${j}_Homo_sapiens_removed.txt
+# Remove .sam & .sai files to clear space
+rm $reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.sam
+rm $reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.sai
+done
+```
+Damage Patterns assessment
+```
+mkdir $reads_clean/mapDamage
+cd /data01/home/area52/mapDamage
+for j in ${ref_spe}; do
+mapDamage --merge-libraries -d $reads_clean/mapDamage/${i}_${j}_Homo_sapiens_removed -i $reads_clean/${i}/${i}_${j}_Homo_sapiens_removed_final.bam -r $ref/${j}.fasta
+mv $reads_clean/mapDamage/${i}_${j}_Homo_sapiens_removed/Fragmisincorporation_plot.pdf $reads_clean/mapDamage/${i}_${j}_Homo_sapiens_removed/${i}_${j}_Fragmisincorporation_plot.pdf
+mv $reads_clean/mapDamage/${i}_${j}_Homo_sapiens_removed/Length_plot.pdf $reads_clean/mapDamage/${i}_${j}_Homo_sapiens_removed/${i}_${j}_Length_plot.pdf
+done
+
+for i in ${NAME}; do
+for j in ${ref_spe}; do
+mapDamage --merge-libraries -d $reads_clean/mapDamage/rescaled/${i}_${j}_Homo_sapiens_removed -i $reads_clean/${i}/${i}_${j}_Homo_sapiens_removed_final.bam -r $ref/${j}.fasta --rescale
+mv $reads_clean/mapDamage/rescaled/${i}_${j}_Homo_sapiens_removed/Fragmisincorporation_plot.pdf $reads_clean/mapDamage/rescaled/${i}_${j}_Homo_sapiens_removed/${i}_${j}_Fragmisincorporation_plot.pdf
+mv $reads_clean/mapDamage/rescaled/${i}_${j}_Homo_sapiens_removed/Length_plot.pdf $reads_clean/mapDamage/rescaled/${i}_${j}_Homo_sapiens_removed/${i}_${j}_Length_plot.pdf
+done
+done
+
+for i in ${NAME}; do
+for j in ${ref_spe}; do
+mapDamage --merge-libraries -d $reads_clean/mapDamage/rescaled/${i}_${j}_Homo_sapiens_removed -i $reads_clean/${i}/${i}_${j}_Homo_sapiens_removed_final.bam -r $ref/${j}.fasta -y 0.05 --rescale
+mv $reads_clean/mapDamage/rescaled/${i}_${j}_Homo_sapiens_removed/Fragmisincorporation_plot.pdf $reads_clean/mapDamage/rescaled/${i}_${j}_Homo_sapiens_removed/${i}_${j}_Fragmisincorporation_plot.pdf
+mv $reads_clean/mapDamage/rescaled/${i}_${j}_Homo_sapiens_removed/Length_plot.pdf $reads_clean/mapDamage/rescaled/${i}_${j}_Homo_sapiens_removed/${i}_${j}_Length_plot.pdf
+done
+done
 ```
 
 
