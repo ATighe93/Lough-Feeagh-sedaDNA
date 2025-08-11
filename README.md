@@ -157,35 +157,35 @@ done
 Adaptor removal and low quality bases removal - TRIMMOMATIC
 ```
 mkdir $path/S04_Trimmomatic
-#   for i in ${NAME}; do
-#   java -Xms4G -Xmx4G -jar $softwares/Trimmomatic/trimmomatic-0.39.jar PE -threads 8 -phred33 \
-#   $path/S02_BBduk/${i}_R1_Step02_entropy_0.6_masked.fq \
-#   $path/S02_BBduk/${i}_R2_Step02_entropy_0.6_masked.fq \
-#   $path/S04_Trimmomatic/${i}_R1_Step04_entropy_0.6_masked_trimmed.fq \
-#   $path/S04_Trimmomatic/${i}_S1_Step04_entropy_0.6_masked_trimmed.fq \
-#   $path/S04_Trimmomatic/${i}_R2_Step04_entropy_0.6_masked_trimmed.fq \
-#   $path/S04_Trimmomatic/${i}_S2_Step04_entropy_0.6_masked_trimmed.fq \
-#   ILLUMINACLIP:$ref/adapters.fasta:2:30:10
-#   #   LEADING:15 TRAILING:15 SLIDINGWINDOW:5:15 MINLEN:30
+for i in ${NAME}; do
+java -Xms4G -Xmx4G -jar $softwares/Trimmomatic/trimmomatic-0.39.jar PE -threads 8 -phred33 \
+$path/S02_BBduk/${i}_R1_Step02_entropy_0.6_masked.fq \
+$path/S02_BBduk/${i}_R2_Step02_entropy_0.6_masked.fq \
+$path/S04_Trimmomatic/${i}_R1_Step04_entropy_0.6_masked_trimmed.fq \
+$path/S04_Trimmomatic/${i}_S1_Step04_entropy_0.6_masked_trimmed.fq \
+$path/S04_Trimmomatic/${i}_R2_Step04_entropy_0.6_masked_trimmed.fq \
+$path/S04_Trimmomatic/${i}_S2_Step04_entropy_0.6_masked_trimmed.fq \
+ILLUMINACLIP:$ref/adapters.fasta:2:30:10
+# LEADING:15 TRAILING:15 SLIDINGWINDOW:5:15 MINLEN:30
 # ILLUMINACLIP:path_to_Illumina_adapters.fa:seed mismatches (specifies the maximum mismatch count which will still allow a full match to be performed):palindrome clip threshold (specifies how accurate the match between the two 'adapter ligated' reads must be for PE palindrome read alignment):simpleClipThreshold (specifies how accurate the match between any adapter etc. sequence must be against a read)
 # LEADING:quality, removes low quality bases from the beginning. As long as a base has a value below this threshold the base is removed and the next will be instigated.
 # TRAILING:quality, removes low quality bases from the end. As long as a base has a value below this threshold the base is removed and the next base (which as trimmomatic is starting fro mthe 3' end would be the base preceding the just removed base) will be instigated.
 # SLIDINGWINDOWS:windowSize:requiredQuality, performs a sliding window trimming, cutting once the average quality within the window falls below a threshold. By considering multiple bases, a single poor quality base will not cause the removal of high quality data later in the read
 # MINLEN:length, specifies the minimum length of reads to be kept
-#   readlength.sh in=$path/S04_Trimmomatic/${NAME}_R1_Step04_entropy_0.6_masked_trimmed.fastq.gz in2=$path/S04_Trimmomatic/${NAME}_R2_Step04_entropy_0.6_masked_trimmed.fastq.gz out=$path/S04_Trimmomatic/${NAME}_Step04_entropy_0.6_masked_trimmed_reads_length_histogramme.txt
+readlength.sh in=$path/S04_Trimmomatic/${NAME}_R1_Step04_entropy_0.6_masked_trimmed.fastq.gz in2=$path/S04_Trimmomatic/${NAME}_R2_Step04_entropy_0.6_masked_trimmed.fastq.gz out=$path/S04_Trimmomatic/${NAME}_Step04_entropy_0.6_masked_trimmed_reads_length_histogramme.txt
 ```
 Reads collapsing - AdaptorRemoval 
 ```
-#   mkdir $path/S04_Trimmomatic/collapsing
-#   input_reads1=$path/S04_Trimmomatic/${i}_R1_Step04_entropy_0.6_masked_trimmed.fq
-#   input_reads2=$path/S04_Trimmomatic/${i}_R2_Step04_entropy_0.6_masked_trimmed.fq
+mkdir $path/S04_Trimmomatic/collapsing
+input_reads1=$path/S04_Trimmomatic/${i}_R1_Step04_entropy_0.6_masked_trimmed.fq
+input_reads2=$path/S04_Trimmomatic/${i}_R2_Step04_entropy_0.6_masked_trimmed.fq
 
-#   AdapterRemoval --threads 8 --file1 $input_reads1 --file2 $input_reads2 --collapse --outputcollapsed $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_collapsed.fq --output1 $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1.fq --output2 $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2.fq 
-#   cp $path/S04_Trimmomatic/${i}_S1_Step04_entropy_0.6_masked_trimmed.fq $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1_all.fq
-#   cp $path/S04_Trimmomatic/${i}_S2_Step04_entropy_0.6_masked_trimmed.fq $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2_all.fq
-#   cat $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1.fq >> $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1_all.fq
-#   cat $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2.fq >> $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2_all.fq
-#   done
+AdapterRemoval --threads 8 --file1 $input_reads1 --file2 $input_reads2 --collapse --outputcollapsed $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_collapsed.fq --output1 $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1.fq --output2 $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2.fq 
+cp $path/S04_Trimmomatic/${i}_S1_Step04_entropy_0.6_masked_trimmed.fq $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1_all.fq
+cp $path/S04_Trimmomatic/${i}_S2_Step04_entropy_0.6_masked_trimmed.fq $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2_all.fq
+cat $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1.fq >> $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton1_all.fq
+cat $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2.fq >> $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2_all.fq
+done
 ```
 ### Step 5 Reduced data overview - FASTQC 3 
 ```
@@ -239,16 +239,22 @@ Remove PCR duplicates
 # Sort BAM 
 java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar MarkDuplicates INPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.sam OUTPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_PCRdup_removed.bam METRICS_FILE=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_duplicates_metric.txt REMOVE_DUPLICATES=true ASSUME_SORTED=true
 java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar SortSam INPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.bam OUTPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_sorted.bam SO=coordinate
+
 # Index BAM
 java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar BuildBamIndex INPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_sorted.bam
+
 # Mark & Remove PCR duplicates
 java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar MarkDuplicates INPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_sorted.bam OUTPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_PCRdup_removed_test.bam METRICS_FILE=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_duplicates_metric.txt REMOVE_DUPLICATES=true ASSUME_SORTED=true
+
 # Sort BAM 
 java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar SortSam INPUT=$reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed_sorted.bam OUTPUT=$reads_clean/${i}/${i}_${j}_Homo_sapiens_removed_final.bam SO=coordinate
+
 # Index BAM
 java -Xms4G -Xmx4G -jar $softwares/PicardTools/picard.jar BuildBamIndex INPUT=$reads_clean/${i}/${i}_${j}_Homo_sapiens_removed_final.bam
+
 # Count unique mapped reads 
 samtools flagstat $reads_clean/${i}/${i}_${j}_Homo_sapiens_removed_final.bam > $reads_clean/${i}/${i}_%_of_reads_noPCRdup_MarkDuplicates_mapped_to_${j}_Homo_sapiens_removed.txt
+
 # Remove .sam & .sai files to clear space
 rm $reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.sam
 rm $reads_clean/${i}/${i}_on_${j}_Homo_sapiens_removed.sai
