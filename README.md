@@ -1,4 +1,4 @@
-# Lough Feeagh sedaDNA analysis
+v# Lough Feeagh sedaDNA analysis
 
 These commands and pipelines are the bioinformatic steps which accompany the Tighe et al. 2025 article, showing how both the metabarcoding data and shotgun sequences were analysed.
 All analyses were run on a Linux Server running Ubuntu 24.04 LTS, with 64 cores and 472 Gb memory.
@@ -153,7 +153,7 @@ for i in ${NAME}; do
 fastqc -o $path/S03_FASTQC $path/S02_BBduk/${i}_R1_Step02_entropy_0.6_masked.fq $path/S02_BBduk/${i}_R2_Step02_entropy_0.6_masked.fq
 done
 ```
-### Step 4 TRIMMING AND COLLAPSING
+### Step 4 Trimming and collapsing
 Adaptor removal and low quality bases removal - TRIMMOMATIC
 ```
 mkdir $path/S04_Trimmomatic
@@ -187,14 +187,14 @@ Reads collapsing - AdaptorRemoval
 #   cat $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2.fq >> $path/S04_Trimmomatic/collapsing/${i}_entropy_0.6_masked_trimmed_singleton2_all.fq
 #   done
 ```
-### Step 5 REDUCED DATA OVERVIEW - FASTQC 3 
+### Step 5 Reduced data overview - FASTQC 3 
 ```
 mkdir $path/S05_FASTQC
 for i in ${NAME}; do
 fastqc -o $path/S05_FASTQC $path/S04_Trimmomatic/collapsing/${NAME}_entropy_0.6_masked_trimmed_collapsed.fq $path/S04_Trimmomatic/collapsing/${NAME}_entropy_0.6_masked_trimmed_singleton1_all.fq $path/S04_Trimmomatic/collapsing/${NAME}_entropy_0.6_masked_trimmed_singleton2_all.fq
 done
 ```
-### Step 6 REMOVING HUMAN DNA AND IDENTIFYING DNA - BWA & BLAST
+### Step 6 Removing human DNA and indentifying DNA - BWA & BLAST
 Mapping and removing reads mapped to human DNA - BWA-aln
 ```
 mkdir $path/S06_Alignments
